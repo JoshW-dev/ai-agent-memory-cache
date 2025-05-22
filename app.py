@@ -4,6 +4,7 @@ import os
 import time # For any brief simulated delays if needed
 import uuid
 from typing import Optional, List, Dict, Tuple
+import re
 
 # Core application imports
 from memory_cache import MemoryCache, ActionSequence, LookupResult
@@ -50,6 +51,15 @@ def main():
         st.session_state.last_executed_actions = [] # Store the ActionSequence that was last shown
     if "feedback_status" not in st.session_state:
         st.session_state.feedback_status = {}
+    # New session state variables for agent retry logic
+    if "current_user_prompt" not in st.session_state:
+        st.session_state.current_user_prompt = None
+    if "current_tool_history_for_feedback" not in st.session_state:
+        st.session_state.current_tool_history_for_feedback = None
+    if "is_last_action_from_cache" not in st.session_state:
+        st.session_state.is_last_action_from_cache = False # Default, can be True if nothing processed yet
+    if "agent_retry_info" not in st.session_state:
+        st.session_state.agent_retry_info = None
 
     # Display chat messages from history
     for message in st.session_state.messages:
@@ -114,26 +124,41 @@ def main():
         with st.chat_message("assistant"):
             message_placeholder = st.empty() # For "Thinking..." message
             message_placeholder.markdown("🧠 Agent thinking...")
+
+            st.session_state.current_user_prompt = prompt # Store current prompt
             
             assistant_response_content: any = "Error: Could not get response."
             actions_to_display_and_store: ActionSequence = []
             entry_id_for_this_interaction: Optional[uuid.UUID] = None
             similarity_score_for_display: Optional[float] = None
             new_tool_defined_this_turn = False # Initialize flag
+            agent_excluded_tools: Optional[List[str]] = None # For agent retry
 
-            lookup_result: Optional[LookupResult] = cache.lookup(prompt)
+            # Check for agent retry
+            if st.session_state.agent_retry_info and st.session_state.agent_retry_info["original_prompt"] == prompt:
+                print(f"Agent retry triggered for prompt: '{prompt}' with exclusions: {st.session_state.agent_retry_info['exclude_tool_names']}")
+                agent_excluded_tools = st.session_state.agent_retry_info['exclude_tool_names']
+                st.session_state.agent_retry_info = None # Consume retry info
+                lookup_result = None # Force agent run, skip cache
+            else:
+                lookup_result: Optional[LookupResult] = cache.lookup(prompt)
 
             if lookup_result:
                 entry_id_for_this_interaction = lookup_result['entry_id']
                 actions_to_display_and_store = lookup_result['actions']
                 similarity_score_for_display = lookup_result['similarity_score']
+                st.session_state.is_last_action_from_cache = True
+                st.session_state.current_tool_history_for_feedback = None
                 
                 st.session_state.current_entry_id_for_reward = entry_id_for_this_interaction
                 
                 response_summary = f"Retrieved from cache (Similarity: {similarity_score_for_display:.2f}):"
             else:
                 response_summary = "🧠 Generating new response with agent:"
-                final_answer_from_agent, tool_history_dicts = agent.run(prompt)
+                # Pass agent_excluded_tools if this is a retry
+                final_answer_from_agent, tool_history_dicts = agent.run(prompt, exclude_tool_names=agent_excluded_tools)
+                st.session_state.current_tool_history_for_feedback = tool_history_dicts # Store for potential feedback
+                st.session_state.is_last_action_from_cache = False
 
                 if tool_history_dicts:
                     for step in tool_history_dicts:
@@ -196,16 +221,52 @@ def main():
                     cache.update_reward(entry_id, True)
                     st.session_state.feedback_status[entry_id] = "upvoted"
                     # Clear flags to hide this section for the current interaction turn and allow UI to update
-                    st.session_state.last_executed_actions = [] 
-                    st.session_state.current_entry_id_for_reward = None
+                    # st.session_state.last_executed_actions = [] 
+                    # st.session_state.current_entry_id_for_reward = None
                     st.rerun()
             with col2:
                 if st.button("👎 Did Not Work", key=f"not_worked_{entry_id}"):
-                    cache.update_reward(entry_id, False)
-                    st.session_state.feedback_status[entry_id] = "downvoted"
-                    # Clear flags to hide this section for the current interaction turn and allow UI to update
-                    st.session_state.last_executed_actions = []
-                    st.session_state.current_entry_id_for_reward = None
+                    if entry_id: # If there was a cache entry associated
+                        cache.update_reward(entry_id, False)
+                        st.session_state.feedback_status[entry_id] = "downvoted"
+                    else: # Agent action that wasn't cached yet, or direct answer error
+                        print(f"Downvote for an agent action (no cache entry ID: {entry_id}) for prompt: {st.session_state.current_user_prompt}")
+                        # We still mark a general downvote status if needed, though might not be tied to a specific cache entry_id
+                        # For simplicity, we can use a generic key or the prompt itself if entry_id is None
+                        st.session_state.feedback_status[st.session_state.current_user_prompt + "_agent_direct"] = "downvoted"
+
+                    # Agent retry logic if the last action was not from cache
+                    if not st.session_state.is_last_action_from_cache and st.session_state.current_tool_history_for_feedback:
+                        tool_to_exclude = None
+                        # Iterate reversed to find the last actual tool used or defined
+                        for step in reversed(st.session_state.current_tool_history_for_feedback):
+                            if step.get("tool_name") not in ["DirectAnswer", "ToolDefinitionAgent"]:
+                                tool_to_exclude = step.get("tool_name")
+                                break
+                            elif step.get("tool_name") == "ToolDefinitionAgent": # If a tool was defined, that was the action
+                                obs_text = step.get("observation", "")
+                                match = re.search(r"Defined and registered new tool: (\w+)", obs_text)
+                                if match:
+                                    tool_to_exclude = match.group(1)
+                                break 
+                        
+                        if tool_to_exclude and st.session_state.current_user_prompt:
+                            print(f"Agent action downvoted. Setting up retry for prompt '{st.session_state.current_user_prompt}' excluding tool '{tool_to_exclude}'")
+                            st.session_state.agent_retry_info = {
+                                "original_prompt": st.session_state.current_user_prompt,
+                                "exclude_tool_names": [tool_to_exclude]
+                            }
+                            # Add a message to chat history indicating a retry
+                            st.session_state.messages.append({
+                                "role": "assistant", 
+                                "content": f"Okay, that didn't work as expected. I'll try approaching '{st.session_state.current_user_prompt}' a different way, avoiding the last tool ({tool_to_exclude})..."
+                            })
+                            st.session_state.process_prompt_now = st.session_state.current_user_prompt # Ensure this prompt is processed on rerun
+                        else:
+                            print("Downvote on agent action, but no specific tool identified to exclude for retry or prompt missing.")
+                    
+                    # st.session_state.last_executed_actions = []
+                    # st.session_state.current_entry_id_for_reward = None
                     st.rerun()
 
 if __name__ == "__main__":

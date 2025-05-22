@@ -9,7 +9,7 @@ from .tools.base import Tool as BaseTool
 from .agent import Agent
 
 # Constants for embedding-based tool selection
-TOOL_SIMILARITY_THRESHOLD = 0.4
+TOOL_SIMILARITY_THRESHOLD = 0.3
 OPENAI_EMBEDDING_MODEL_FOR_TOOLS = "text-embedding-3-small"
 
 # Prompt template for generating tool input
