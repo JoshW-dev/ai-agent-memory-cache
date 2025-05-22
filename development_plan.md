@@ -93,7 +93,7 @@ Constants for configuration (as per README.md, can be class members or global):
 |---------|-----------------------------------------------------------------------------|-------------|------------------------------------------------------------------------------------------------------|
 | P5-C1   | **Comprehensive End-to-End Testing of `mock_agent_demo.py`**                | Done        | Tested cache miss/hit, agent tool use, self-healing (eviction), and direct answers. Confirmed by user. |
 | P5-C2   | **Review and Refine `CapturingAgent` & `mock_agent_demo.py` (Initial Pass)**  | Done        | Log verbosity, error handling (basic), prompt engineering (default used). User feedback incorporated.|
-| P5-C3   | **Update `README.md` to Reflect Phase 5 Changes**                         | Not Started | Document the new `CapturingAgent`, `llm_module`, updated `ActionSequence` meaning, and `mock_agent_demo.py` functionality. |
+| P5-C3   | **Update `README.md` to Reflect Phase 5 Changes**                         | Done        | `README.md` updated to accurately reflect the `CapturingAgent`, `llm_module`, and enhanced demo functionality from Phase 5. |
 
 ### Phase 6: UI/UX Enhancements & Advanced Features
 
@@ -101,13 +101,42 @@ Constants for configuration (as per README.md, can be class members or global):
 
 | Task ID | Description                                                                 | Status      | Notes                                                                                                                                 |
 |---------|-----------------------------------------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| P6-T1   | **Research & Select Frontend Framework**                                      | Not Started | Evaluate options like Streamlit, Gradio, or Flask/FastAPI with a simple HTML/JS frontend for a chat interface. Prioritize ease of use. |
-| P6-T2   | **Develop Basic Chatbot Frontend**                                            | Not Started | Implement a UI where users can type prompts and see agent responses (including cached actions or new agent actions).                  |
-| P6-T3   | **Integrate Frontend with `MemoryCache` and `CapturingAgent`**                | Not Started | Backend logic to connect UI inputs/outputs to the existing agent and cache system.                                                    |
-| P6-T4   | **Refine Reward System UX**                                                   | Not Started | How will feedback be collected in the UI? (e.g., thumbs up/down, star rating, explicit y/n after actions are displayed).           |
-| P6-T5   | **Agent Polish: Improve `CapturingAgent` Robustness**                         | Not Started | Enhance error handling, refine prompt templates for better LLM guidance, ensure graceful failure if tools aren't chosen correctly.    |
+| P6-T1   | **Research & Select Frontend Framework**                                      | Done        | Selected Streamlit for its ease of use and Python-native UI development. User installed Streamlit.                                  |
+| P6-T2   | **Develop Basic Chatbot Frontend**                                            | Done        | Created `app.py` with a basic Streamlit chat interface. User confirmed. *To refine: Improve clarity of agent response display.*         |
+| P6-T3   | **Integrate Frontend with `MemoryCache` and `CapturingAgent`**                | Done        | `app.py` now uses `MemoryCache` & `CapturingAgent`. Basic reward UI (buttons) implemented. *To refine: Display similarity score on HIT.* |
+| P6-T4   | **Refine Reward System UX**                                                   | In Progress | Current: Thumbs up/down buttons in UI. Confirm if this meets simplicity goal or if other UX elements are desired.                   |
+| P6-T5   | **Agent Polish: Improve `CapturingAgent` Robustness & Tool Relevance**        | In Progress | Enhance error handling, refine prompts. *Priority: Update `custom_tools.py` with video game specific tools.*                      |
 | P6-T6   | **Advanced Reward System (Conceptual/Implementation)**                        | Not Started | Explore more nuanced reward signals beyond simple y/n. E.g., partial success, or feedback on specific tool calls.                  |
 | P6-T7   | **Documentation Update for New Features**                                     | Not Started | Update README and other relevant docs for the new frontend and any advanced features.                                               |
+
+### Phase 7: Agent Tool Selection Refactor & Enhanced Testing (Current Focus)
+
+**Goal:** Refine the agent's tool selection to be primarily driven by semantic similarity between the user prompt and tool descriptions/names. Improve agent output clarity and add targeted backend tests.
+
+| Task ID | Description                                                                      | Status      | Notes                                                                                                                                                              |
+|---------|----------------------------------------------------------------------------------|-------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| P7-T1   | **Modify `CapturingAgent` for Embedding-Based Tool Selection**                     | In Progress | Agent to embed tools (name+desc) on init. `run()` will find best tool via similarity to prompt embedding. Threshold: 0.6.                                        |
+| P7-T2   | **LLM Role Shift: Tool Input Generation**                                          | Not Started | If tool selected by similarity, LLM's role is to generate the tool's input string based on user prompt and tool desc, not to select the tool itself.              |
+| P7-T3   | **Handle No Tool Match: LLM Direct Answer**                                        | Not Started | If no tool meets similarity threshold, LLM generates a direct answer to the user's prompt.                                                                         |
+| P7-T4   | **Update `ActionSequence` Format & Agent History**                                 | Not Started | `ActionSequence` to include tool selection similarity score if a tool is used. E.g., "Tool: <name> (Similarity: <score>), Input: <input>, Observation: <obs>".      |
+| P7-T5   | **Enhance `app.py` Output for Agent Responses**                                    | Not Started | Display tool selection similarity in Streamlit UI when agent uses a tool (cache miss scenario).                                                                      |
+| P7-T6   | **Create New Terminal-Based Tests for Tool Selection**                             | Not Started | New Python test script (e.g., `test_agent_tool_selection.py`) to verify: tool choice by similarity, score reporting, LLM input generation, fallback to direct answer, dynamic tool creation. |
+| P7-T7   | **Update `README.md` for Phase 7 Changes**                                       | Not Started | Reflect new agent logic, `ActionSequence` format, and testing strategy in main README.                                                                               |
+
+### Phase 8: Advanced Feedback & Self-Healing for Tool Selection (Conceptualized)
+
+**Goal:** Implement a robust feedback mechanism that allows the agent to learn from user input on tool selection, improving accuracy and enabling self-healing of its tool preferences.
+
+| Task ID | Description                                                                      | Status      | Notes                                                                                                                                                                                              |
+|---------|----------------------------------------------------------------------------------|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| P8-T1   | **Agent Internal Tool Representation for Feedback**                                | Not Started | Modify `BaseTool` or agent's tool store to allow each tool to maintain a list of 'additional representative embeddings' derived from upvoted user prompts.                                     |
+| P8-T2   | **Implement Upvote Logic for Tool Selection**                                      | Not Started | On user upvote for a chosen_tool/user_prompt pair: generate embedding for user_prompt, add it to chosen_tool's additional representative embeddings. Re-evaluate effective similarity for future. |
+| P8-T3   | **Integrate Agent Tool Feedback with Cache Feedback**                              | Not Started | If a cached sequence (referencing a tool) is upvoted, apply agent-level tool upvote logic for the original prompt & tool. If downvoted, cache score penalizes the sequence.                      |
+| P8-T4   | **Refine Agent's `run` Method for Multi-Embedding Tool Matching**                   | Not Started | Agent's tool selection to compare user prompt embedding against both primary tool embedding and all additional representative embeddings for each tool, taking the max similarity.          |
+| P8-T5   | **Handle Downvotes for Tool Selection (Implicit Learning)**                        | Not Started | Downvoted tool-prompt pairs are not reinforced. Correct choices (via alternative existing tools or newly created ones) get upvoted, naturally out-competing prior incorrect choices.        |
+| P8-T6   | **Update `app.py` / Demo for Tool Feedback**                                     | Not Started | UI to allow feedback specifically tied to the agent's tool choice when applicable (especially on cache miss).                                                                          |
+| P8-T7   | **Testing Suite for Feedback Loop**                                                | Not Started | Create backend tests to simulate upvotes/downvotes and verify that the agent's tool preferences adapt correctly over several interactions with similar prompts.                             |
+| P8-T8   | **Update `README.md` and `development_plan.md` for Phase 8**                     | Not Started | Document the new feedback mechanisms, learning strategy, and updated agent behavior.                                                                                                 |
 
 ## Environment Variables
 

@@ -10,6 +10,14 @@ import json # Added for P3-T3
 # P1-T6: Define ActionSequence Type (List[str])
 ActionSequence = List[str]
 
+# P6-T3 refinement: Define a TypedDict for a more structured lookup result
+class LookupResult(TypedDict):
+    entry_id: uuid.UUID
+    actions: ActionSequence
+    similarity_score: float
+    # We could also include the original prompt stored if needed for context
+    # stored_prompt: str 
+
 # Configuration Constants
 OPENAI_EMBEDDING_MODEL = "text-embedding-3-small" # P2-T1
 SIMILARITY_THRESHOLD_TAU = 0.60 # P2-T3 - Lowered further to 0.70 for testing, NOW 0.60 based on P3-T4 testing
@@ -62,11 +70,11 @@ class MemoryCache:
         # For normalized vectors, cosine similarity is the dot product.
         return np.dot(np.array(vec1), np.array(vec2))
 
-    def lookup(self, prompt: str) -> Optional[Tuple[uuid.UUID, ActionSequence]]:
+    def lookup(self, prompt: str) -> Optional[LookupResult]:
         """
         Performs a similarity search in ChromaDB for the given prompt.
         If a sufficiently similar and high-scoring entry is found, 
-        its ID and actions are returned as a tuple (uuid.UUID, ActionSequence).
+        its ID, actions, and similarity score are returned.
         """
         # print(f"DEBUG: lookup() called with prompt: '{prompt}'") # Reduced verbosity
         query_embedding = self._generate_embedding(prompt)
@@ -116,7 +124,7 @@ class MemoryCache:
                     try:
                         actions = json.loads(actions_json)
                         # print(f"DEBUG: HIT! Prompt: '{prompt}'. Best match: '{prompt_raw}' (ID: {entry_id_str}). Similarity: {similarity:.4f}, Score: {score:.2f}") # Keep high-level HIT from demo
-                        return uuid.UUID(entry_id_str), actions
+                        return LookupResult(entry_id=uuid.UUID(entry_id_str), actions=actions, similarity_score=similarity)
                     except json.JSONDecodeError as e:
                         print(f"Error decoding actions_json for entry ID {entry_id_str}: {e}. Skipping this entry.") # Keep error
                         continue 
