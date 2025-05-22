@@ -314,9 +314,9 @@ if __name__ == '__main__':
             # print(f"Current tools in agent: {[t.name for t in agent_s1.tools]}")
             agent_final_answer, agent_history = agent_s1.run(prompt)
             print(f"Agent's Effective Answer: {agent_final_answer}")
-            print("History:")
+        print("History:")
             for i, step in enumerate(agent_history):
-                print(f"  Step {i+1}:")
+            print(f"  Step {i+1}:")
                 print(f"    Tool: {step.get('tool_name', 'N/A')}")
                 print(f"    Similarity: {step.get('similarity_score', 'N/A')}")
                 print(f"    Input: {step.get('tool_input', 'N/A')}")
