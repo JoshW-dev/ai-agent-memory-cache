@@ -93,7 +93,7 @@ Constants for configuration (as per README.md, can be class members or global):
 |---------|-----------------------------------------------------------------------------|-------------|------------------------------------------------------------------------------------------------------|
 | P5-C1   | **Comprehensive End-to-End Testing of `mock_agent_demo.py`**                | Done        | Tested cache miss/hit, agent tool use, self-healing (eviction), and direct answers. Confirmed by user. |
 | P5-C2   | **Review and Refine `CapturingAgent` & `mock_agent_demo.py` (Initial Pass)**  | Done        | Log verbosity, error handling (basic), prompt engineering (default used). User feedback incorporated.|
-| P5-C3   | **Update `README.md` to Reflect Phase 5 Changes**                         | Not Started | Document the new `CapturingAgent`, `llm_module`, updated `ActionSequence` meaning, and `mock_agent_demo.py` functionality. |
+| P5-C3   | **Update `README.md` to Reflect Phase 5 Changes**                         | Done        | `README.md` updated to accurately reflect the `CapturingAgent`, `llm_module`, and enhanced demo functionality from Phase 5. |
 
 ### Phase 6: UI/UX Enhancements & Advanced Features
 
@@ -101,11 +101,11 @@ Constants for configuration (as per README.md, can be class members or global):
 
 | Task ID | Description                                                                 | Status      | Notes                                                                                                                                 |
 |---------|-----------------------------------------------------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------------|
-| P6-T1   | **Research & Select Frontend Framework**                                      | Not Started | Evaluate options like Streamlit, Gradio, or Flask/FastAPI with a simple HTML/JS frontend for a chat interface. Prioritize ease of use. |
-| P6-T2   | **Develop Basic Chatbot Frontend**                                            | Not Started | Implement a UI where users can type prompts and see agent responses (including cached actions or new agent actions).                  |
-| P6-T3   | **Integrate Frontend with `MemoryCache` and `CapturingAgent`**                | Not Started | Backend logic to connect UI inputs/outputs to the existing agent and cache system.                                                    |
-| P6-T4   | **Refine Reward System UX**                                                   | Not Started | How will feedback be collected in the UI? (e.g., thumbs up/down, star rating, explicit y/n after actions are displayed).           |
-| P6-T5   | **Agent Polish: Improve `CapturingAgent` Robustness**                         | Not Started | Enhance error handling, refine prompt templates for better LLM guidance, ensure graceful failure if tools aren't chosen correctly.    |
+| P6-T1   | **Research & Select Frontend Framework**                                      | Done        | Selected Streamlit for its ease of use and Python-native UI development. User installed Streamlit.                                  |
+| P6-T2   | **Develop Basic Chatbot Frontend**                                            | Done        | Created `app.py` with a basic Streamlit chat interface. User confirmed. *To refine: Improve clarity of agent response display.*         |
+| P6-T3   | **Integrate Frontend with `MemoryCache` and `CapturingAgent`**                | Done        | `app.py` now uses `MemoryCache` & `CapturingAgent`. Basic reward UI (buttons) implemented. *To refine: Display similarity score on HIT.* |
+| P6-T4   | **Refine Reward System UX**                                                   | In Progress | Current: Thumbs up/down buttons in UI. Confirm if this meets simplicity goal or if other UX elements are desired.                   |
+| P6-T5   | **Agent Polish: Improve `CapturingAgent` Robustness & Tool Relevance**        | In Progress | Enhance error handling, refine prompts. *Priority: Update `custom_tools.py` with video game specific tools.*                      |
 | P6-T6   | **Advanced Reward System (Conceptual/Implementation)**                        | Not Started | Explore more nuanced reward signals beyond simple y/n. E.g., partial success, or feedback on specific tool calls.                  |
 | P6-T7   | **Documentation Update for New Features**                                     | Not Started | Update README and other relevant docs for the new frontend and any advanced features.                                               |
 
