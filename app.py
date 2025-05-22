@@ -119,6 +119,7 @@ def main():
             actions_to_display_and_store: ActionSequence = []
             entry_id_for_this_interaction: Optional[uuid.UUID] = None
             similarity_score_for_display: Optional[float] = None
+            new_tool_defined_this_turn = False # Initialize flag
 
             lookup_result: Optional[LookupResult] = cache.lookup(prompt)
 
@@ -136,7 +137,10 @@ def main():
 
                 if tool_history_dicts:
                     for step in tool_history_dicts:
+                        if step.get("tool_name") == "ToolDefinitionAgent":
+                            new_tool_defined_this_turn = True
                         action_str = f"Tool: {step.get('tool_name', 'N/A')}, " \
+                                     f"Similarity: {step.get('similarity_score', 'N/A')}, " \
                                      f"Input: '{step.get('tool_input', 'N/A')}', " \
                                      f"Observation: '{step.get('observation', 'N/A')}'"
                         actions_to_display_and_store.append(action_str)
@@ -168,6 +172,10 @@ def main():
             st.session_state.messages.append({"role": "assistant", "content": assistant_response_content})
             st.session_state.last_executed_actions = actions_to_display_and_store # Save for reward UI
             st.session_state.current_entry_id_for_reward = entry_id_for_this_interaction # Ensure it's set for this turn
+
+            if new_tool_defined_this_turn:
+                print("A new tool was defined by the agent. Triggering a rerun to update the tool list in the sidebar.")
+                st.rerun()
 
     # --- Reward Feedback UI ---
     if st.session_state.last_executed_actions and st.session_state.current_entry_id_for_reward:
